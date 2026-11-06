@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A4F87">
+<title>Fahrgemeinschaft</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚗</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#E8ECEF; --flaeche:#FFFFFF; --tinte:#17202A; --leise:#566470; --linie:#D2D9DF;
+  --blau:#0A4F87; --blau-tief:#073A63; --akzent:#0A4F87;
+  --gelb:#F4B400; --auf-gelb:#1B1B1B;
+  --plus:#14703D; --minus:#B3372B;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    color-scheme: dark;
+    --bg:#0E1318; --flaeche:#17202A; --tinte:#E4E9ED; --leise:#97A5B1; --linie:#2A3541;
+    --blau:#0E4C7E; --blau-tief:#0A3A61; --akzent:#86BDEB;
+    --gelb:#F2C233; --plus:#55C78C; --minus:#F2806F;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--tinte);
+  font-family:'Barlow', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size:17px; line-height:1.4; font-variant-numeric:tabular-nums;
+  padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);
+}
+button{font:inherit; cursor:pointer}
+#app{max-width:560px; margin:0 auto; padding:10px 14px 56px}
+:focus-visible{outline:3px solid var(--gelb); outline-offset:2px}
+
+.kopf{display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:10px 2px 14px}
+.kopf h1{font-size:28px; font-weight:700; letter-spacing:-.01em; margin:0}
+.sync{font-size:14px; color:var(--leise); background:none; border:0; padding:4px 0; white-space:nowrap}
+.sync::before{content:''; display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--plus); margin-right:6px; vertical-align:1px}
+.sync.laeuft::before{background:var(--gelb)}
+.sync.fehler::before{background:var(--minus)}
+
+/* Die Fahrt-Karte ist ein Wegweiser: blau mit weißem Innenrand */
+.schild{
+  background:var(--blau); color:#fff; border-radius:16px; padding:18px 16px 16px; margin-bottom:24px;
+  box-shadow:inset 0 0 0 5px var(--blau), inset 0 0 0 7px rgba(255,255,255,.92);
+}
+.schild h2{margin:0 0 12px; font-size:22px; font-weight:700}
+.schild p{margin:0 0 12px}
+.schild .reihe{display:grid; grid-template-columns:1fr 92px; gap:10px; margin-bottom:12px}
+.schild label.feld{display:flex; flex-direction:column; gap:4px; font-size:14px; color:rgba(255,255,255,.85)}
+.schild input{
+  width:100%; min-height:46px; padding:10px; border-radius:10px; font:inherit; font-size:17px;
+  background:rgba(255,255,255,.12); border:1.5px solid rgba(255,255,255,.55); color:#fff; color-scheme:dark;
+}
+.frage{font-size:15px; color:rgba(255,255,255,.85); margin:2px 0 8px}
+.chips{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px}
+.chip{
+  font-size:17px; font-weight:600; color:#fff; background:transparent;
+  border:1.5px solid rgba(255,255,255,.6); border-radius:999px; padding:8px 16px; min-height:44px;
+}
+.chip.fahrer.an{background:var(--gelb); border-color:var(--gelb); color:var(--auf-gelb)}
+.chip.mit.an{background:#fff; border-color:#fff; color:var(--blau-tief)}
+.chip.mit.halb{background:rgba(255,255,255,.72); border-style:dashed; border-color:#fff}
+.chip .zeichen{margin-left:6px; font-weight:700}
+.hilfe{font-size:13px; color:rgba(255,255,255,.75); margin:-6px 0 14px}
+.leer-schild{font-size:15px; color:rgba(255,255,255,.85); margin:0 0 14px}
+.vorschau{border-top:1.5px solid rgba(255,255,255,.35); padding-top:12px; display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap}
+.vorschau .summe{font-size:34px; font-weight:700; line-height:1}
+.vorschau .teil{font-size:14px; color:rgba(255,255,255,.85); margin-top:6px}
+.vorschau ul{list-style:none; margin:8px 0 0; padding:0; font-size:15px}
+.vorschau .hinweis{font-size:15px; color:rgba(255,255,255,.85)}
+.speichern{font-weight:700; font-size:17px; background:var(--gelb); color:var(--auf-gelb); border:0; border-radius:12px; padding:12px 18px; min-height:48px}
+.speichern:disabled{background:rgba(255,255,255,.14); color:rgba(255,255,255,.55); cursor:default}
+
+.block{margin:0 0 24px}
+.block h2{font-size:21px; font-weight:700; margin:0 0 8px}
+.block h3{font-size:16px; font-weight:600; color:var(--leise); margin:16px 0 6px}
+.liste{list-style:none; margin:0; padding:0; background:var(--flaeche); border:1px solid var(--linie); border-radius:12px}
+.liste > li{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 14px; border-top:1px solid var(--linie); min-height:52px}
+.liste > li:first-child{border-top:0}
+.betrag{font-weight:700; font-size:18px; white-space:nowrap}
+.plus{color:var(--plus)} .minus{color:var(--minus)} .null{color:var(--leise); font-weight:500}
+.klein{font-size:14px; color:var(--leise)}
+.erklaerung{font-size:14px; color:var(--leise); margin:6px 2px 0}
+.wer{flex:1; min-width:0}
+.pfeil{color:var(--leise); padding:0 4px}
+.knopf{font-size:15px; font-weight:600; border:1.5px solid var(--akzent); color:var(--akzent); background:transparent; border-radius:10px; padding:7px 12px; min-height:40px}
+.knopf.voll{background:var(--akzent); color:var(--flaeche)}
+.knopf.gefahr{border-color:var(--minus); color:var(--minus)}
+.quitt{background:var(--flaeche); border:1px solid var(--linie); border-radius:12px; padding:14px; color:var(--leise)}
+
+.aufklapp{width:100%; display:flex; justify-content:space-between; align-items:center; font-size:21px; font-weight:700; color:var(--tinte); background:none; border:0; padding:6px 2px 8px; text-align:left}
+.aufklapp .zahl{font-weight:500; color:var(--leise); font-size:17px; margin-left:6px}
+.aufklapp::after{content:''; flex:none; width:10px; height:10px; border-right:2.5px solid var(--leise); border-bottom:2.5px solid var(--leise); transform:rotate(45deg); margin:0 8px 4px}
+.aufklapp[aria-expanded="true"]::after{transform:rotate(-135deg); margin-bottom:-4px}
+
+.eintrag{flex:1; min-width:0}
+.eintrag .k{font-size:14px; color:var(--leise)}
+.x{flex:none; width:40px; height:40px; border-radius:10px; border:0; background:transparent; color:var(--leise); font-size:20px; line-height:1}
+.mehr{margin-top:8px}
+
+.person{flex:1; min-width:0; display:flex; justify-content:space-between; align-items:baseline; gap:10px; background:none; border:0; padding:0; text-align:left; color:var(--tinte); font-size:17px; font-weight:600; min-height:30px}
+.person .klein{font-weight:400}
+.neu{margin-top:10px; width:100%; min-height:48px; font-size:17px; font-weight:700; border:1.5px dashed var(--akzent); color:var(--akzent); background:transparent; border-radius:12px}
+
+.formular{background:var(--flaeche); border:1px solid var(--linie); border-radius:12px; padding:14px; display:grid; gap:12px; margin-top:10px}
+.formular label{display:grid; gap:4px; font-size:14px; color:var(--leise)}
+.eingabe{font:inherit; font-size:17px; color:var(--tinte); background:var(--bg); border:1.5px solid var(--linie); border-radius:10px; padding:10px; min-height:46px; width:100%}
+.mit-einheit{display:flex; align-items:center; gap:8px}
+.mit-einheit .eingabe{width:110px}
+.seg{display:grid; grid-template-columns:repeat(4,1fr); border:1.5px solid var(--akzent); border-radius:10px; overflow:hidden}
+.seg button{font-size:15px; font-weight:600; padding:8px 2px; background:transparent; color:var(--akzent); border:0; border-left:1.5px solid var(--akzent); min-height:44px}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--akzent); color:var(--flaeche)}
+.knopfreihe{display:flex; gap:8px; flex-wrap:wrap}
+
+.einst{background:var(--flaeche); border:1px solid var(--linie); border-radius:12px}
+.einst .z{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 14px; border-top:1px solid var(--linie); min-height:56px}
+.einst .z:first-child{border-top:0}
+.einst .eingabe{width:96px; text-align:right}
+.einst .check{display:flex; gap:12px; align-items:flex-start; justify-content:flex-start}
+.einst .check input{width:24px; height:24px; margin:2px 0 0; accent-color:var(--akzent); flex:none}
+.einst .z.aus{opacity:.5}
+
+.zugang{max-width:420px}
+#toast{position:fixed; left:50%; bottom:calc(18px + env(safe-area-inset-bottom,0px)); transform:translate(-50%,20px); opacity:0; background:var(--tinte); color:var(--bg); padding:12px 18px; border-radius:12px; font-weight:600; transition:opacity .2s, transform .2s; pointer-events:none; max-width:90vw; z-index:10; text-align:center}
+#toast.zeigen{opacity:1; transform:translate(-50%,0)}
+#toast.fehler{background:var(--minus); color:#fff}
+@media (prefers-reduced-motion: reduce){ #toast, .aufklapp::after{transition:none} }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script id="logik">
+/* ---------- Rechenlogik (ohne Oberfläche, wird auch getestet) ---------- */
+const STANDARD = { kmTag: 100, preise: { diesel: 2.20, benzin: 2.20, strom: 0.35 }, pauschale: { aktiv: false, ctProKm: 5 } };
+const VERBRAUCH_STD = { diesel: 5, benzin: 6.5, elektro: 17 };
+const EINHEIT = { diesel: 'L', benzin: 'L', elektro: 'kWh' };
+const TYP_NAME = { diesel: 'Diesel', benzin: 'Benzin', elektro: 'Elektro', keins: 'Kein Auto' };
+
+function zahl(x, std) { const n = Number(x); return Number.isFinite(n) ? n : std; }
+function runde4(x) { return Math.round(x * 10000) / 10000; }
+
+function leereDaten() {
+  return { version: 1, einstellungen: JSON.parse(JSON.stringify(STANDARD)), personen: [], fahrten: [], zahlungen: [] };
+}
+function normalisiere(d) {
+  const out = leereDaten();
+  if (!d || typeof d !== 'object') return out;
+  const e = d.einstellungen || {}, p = e.preise || {}, pa = e.pauschale || {};
+  out.einstellungen.kmTag = zahl(e.kmTag, STANDARD.kmTag);
+  for (const k of ['diesel', 'benzin', 'strom']) out.einstellungen.preise[k] = zahl(p[k], STANDARD.preise[k]);
+  out.einstellungen.pauschale = { aktiv: !!pa.aktiv, ctProKm: zahl(pa.ctProKm, STANDARD.pauschale.ctProKm) };
+  out.personen = Array.isArray(d.personen) ? d.personen : [];
+  out.fahrten = Array.isArray(d.fahrten) ? d.fahrten : [];
+  out.zahlungen = Array.isArray(d.zahlungen) ? d.zahlungen : [];
+  return out;
+}
+function hatAuto(p) { return !!(p && p.auto && VERBRAUCH_STD[p.auto.typ] !== undefined); }
+
+/* Energiekosten in €/km für ein Auto; ohne Angabe gilt das Standardauto (Diesel, 5 L/100 km) */
+function energieProKm(auto, einst) {
+  const ok = auto && VERBRAUCH_STD[auto.typ] !== undefined;
+  const typ = ok ? auto.typ : 'diesel';
+  const verbrauch = ok ? zahl(auto.verbrauch, VERBRAUCH_STD[typ]) : VERBRAUCH_STD.diesel;
+  const preis = typ === 'elektro' ? einst.preise.strom : einst.preise[typ];
+  return verbrauch / 100 * preis;
+}
+/* Wird bei jeder neuen Fahrt festgehalten, damit spätere Preisänderungen alte Fahrten nicht verändern */
+function satzFuerNeueFahrt(fahrer, einst) {
+  return {
+    energie: runde4(energieProKm(fahrer && fahrer.auto, einst)),
+    pauschale: einst.pauschale.aktiv ? runde4(einst.pauschale.ctProKm / 100) : 0
+  };
+}
+
+/* Anteile einer Fahrt. Die Fahrt besteht aus Hin- und Rückweg (je km/2).
+   Jede Strecke wird gleichmäßig auf alle verteilt, die darauf im Auto saßen (Fahrer eingeschlossen).
+   Wer nur eine Strecke dabei war, zahlt nur seinen Anteil an dieser Strecke. */
+function anteile(f) {
+  const k = f.kostenProKm || {};
+  const proKm = zahl(k.energie, 0) + zahl(k.pauschale, 0);
+  const km = zahl(f.km, 0);
+  const strecke = km / 2 * proKm;
+  const mit = (f.mitfahrer || []).filter(m => m && m.id && m.id !== f.fahrer);
+  const voll = mit.filter(m => m.strecken !== 1).length;
+  const n1 = 1 + mit.length, n2 = 1 + voll;
+  const res = []; let summe = 0;
+  for (const m of mit) {
+    const euro = m.strecken === 1 ? strecke / n1 : strecke / n1 + strecke / n2;
+    const cent = Math.round(euro * 100);
+    res.push({ id: m.id, cent, strecken: m.strecken === 1 ? 1 : 2 });
+    summe += cent;
+  }
+  return {
+    gesamtCent: Math.round(km * proKm * 100),
+    energieCent: Math.round(km * zahl(k.energie, 0) * 100),
+    pauschaleCent: Math.round(km * zahl(k.pauschale, 0) * 100),
+    mitfahrer: res,
+    fahrerBekommt: summe
+  };
+}
+
+/* Salden in Cent: plus = bekommt Geld, minus = muss zahlen */
+function salden(d) {
+  const s = {};
+  for (const p of d.personen) s[p.id] = 0;
+  const dazu = (id, c) => { s[id] = (s[id] || 0) + c; };
+  for (const f of d.fahrten) {
+    const a = anteile(f);
+    dazu(f.fahrer, a.fahrerBekommt);
+    for (const m of a.mitfahrer) dazu(m.id, -m.cent);
+  }
+  for (const z of d.zahlungen) {
+    const c = Math.round(zahl(z.cent, 0));
+    dazu(z.von, c);
+    dazu(z.an, -c);
+  }
+  return s;
+}
+
+function gierig(eintraege) {
+  const schuldner = eintraege.filter(e => e.cent < 0).map(e => ({ id: e.id, rest: -e.cent })).sort((a, b) => b.rest - a.rest);
+  const glaeubiger = eintraege.filter(e => e.cent > 0).map(e => ({ id: e.id, rest: e.cent })).sort((a, b) => b.rest - a.rest);
+  const out = []; let i = 0, j = 0;
+  while (i < schuldner.length && j < glaeubiger.length) {
+    const b = Math.min(schuldner[i].rest, glaeubiger[j].rest);
+    if (b > 0) out.push({ von: schuldner[i].id, an: glaeubiger[j].id, cent: b });
+    schuldner[i].rest -= b; glaeubiger[j].rest -= b;
+    if (!schuldner[i].rest) i++;
+    if (!glaeubiger[j].rest) j++;
+  }
+  return out;
+}
+
+/* Möglichst wenige Überweisungen: Personen werden in möglichst viele Gruppen
+   aufgeteilt, die sich untereinander genau ausgleichen (je Gruppe n-1 Zahlungen). */
+function ausgleich(s) {
+  const e = Object.keys(s).filter(id => s[id] !== 0).map(id => ({ id, cent: s[id] }));
+  const n = e.length;
+  if (!n) return [];
+  if (n > 16) return gierig(e);
+  const N = 1 << n, summe = new Float64Array(N), dp = new Int8Array(N), wahl = new Int8Array(N);
+  for (let m = 1; m < N; m++) { const i = 31 - Math.clz32(m & -m); summe[m] = summe[m & (m - 1)] + e[i].cent; }
+  for (let m = 1; m < N; m++) {
+    let best = -1, w = 0;
+    for (let i = 0; i < n; i++) if ((m >> i) & 1) { const c = dp[m ^ (1 << i)]; if (c > best) { best = c; w = i; } }
+    dp[m] = best + (summe[m] === 0 ? 1 : 0);
+    wahl[m] = w;
+  }
+  const out = []; let m = N - 1, letzte = N - 1;
+  while (m) {
+    m ^= 1 << wahl[m];
+    if (summe[m] === 0) {
+      const g = letzte ^ m;
+      out.push(...gierig(e.filter((_, i) => (g >> i) & 1)));
+      letzte = m;
+    }
+  }
+  return out;
+}
+</script>
+
+<script>
+/* ---------- Oberfläche ---------- */
+(function () {
+const API = 'https://fahrgemeinschaft.fbw159.workers.dev';
+const DEMO = window.FG_DEMO === true || /[?&]demo\b/.test(location.search);
+const $app = document.getElementById('app');
+const $toast = document.getElementById('toast');
+
+const S = {
+  daten: null, sha: null, status: 'laden', fehler: '', beschaeftigt: false, letzteSync: 0,
+  fahrer: null, mit: {}, datum: heute(), km: null,
+  offen: { verlauf: false, personen: false, einst: false, alle: false },
+  pform: null, code: ''
+};
+
+function heute() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+const euro = c => (c / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+const mitVorzeichen = c => (c > 0 ? '+' : c < 0 ? '−' : '') + euro(Math.abs(c));
+const dez = (x, st) => Number(x).toLocaleString('de-DE', { maximumFractionDigits: st == null ? 2 : st });
+const liesZahl = s => { const t = String(s).trim().replace(/\s/g, '').replace(',', '.'); if (!t) return NaN; const n = Number(t); return Number.isFinite(n) ? n : NaN; };
+const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+const neueId = () => Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
+const datumKurz = iso => { const t = String(iso).split('-'); return t.length === 3 ? `${t[2]}.${t[1]}.${t[0].slice(2)}` : iso; };
+const pause = ms => new Promise(r => setTimeout(r, ms));
+const name = id => { const p = S.daten && S.daten.personen.find(x => x.id === id); return p ? p.name : '(gelöscht)'; };
+const autoText = a => a && VERBRAUCH_STD[a.typ] !== undefined ? `${TYP_NAME[a.typ]}, ${dez(a.verbrauch, 1)} ${EINHEIT[a.typ]}/100 km` : 'kein Auto';
+
+let toastTimer;
+function toast(text, fehler) {
+  $toast.textContent = text;
+  $toast.className = 'zeigen' + (fehler ? ' fehler' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { $toast.className = fehler ? 'fehler' : ''; }, fehler ? 4000 : 2200);
+}
+
+/* ---------- Zugang und Speicher ---------- */
+function holeSchluessel() {
+  let k = null;
+  const m = location.hash.match(/(?:^#|&)k=([A-Za-z0-9_-]+)/);
+  if (m) {
+    k = m[1];
+    try { localStorage.setItem('fg-schluessel', k); } catch (e) {}
+    history.replaceState(null, '', location.pathname + location.search);
+  }
+  if (!k) { try { k = localStorage.getItem('fg-schluessel'); } catch (e) {} }
+  return k;
+}
+let KEY = DEMO ? 'demo' : holeSchluessel();
+let demoSpeicher = null;
+
+async function api(method, body) {
+  if (DEMO) {
+    if (method === 'GET') return { data: demoSpeicher ? JSON.parse(demoSpeicher) : (window.FG_DEMO_DATEN || null), sha: 'demo' };
+    demoSpeicher = JSON.stringify(body.data);
+    return { sha: 'demo' };
+  }
+  let r;
+  try {
+    r = await fetch(API + '/daten', {
+      method, cache: 'no-store',
+      headers: Object.assign({ 'x-key': KEY }, body ? { 'content-type': 'application/json' } : {}),
+      body: body ? JSON.stringify(body) : undefined
+    });
+  } catch (e) { throw { art: 'netz' }; }
+  let j = {};
+  try { j = await r.json(); } catch (e) {}
+  if (r.status === 401) throw { art: 'schluessel' };
+  if (r.status === 409) throw { art: 'konflikt' };
+  if (!r.ok) throw { art: 'server' };
+  return j;
+}
+function fehlerText(e) {
+  return ({ netz: 'Keine Verbindung.', server: 'Speicher gerade nicht erreichbar.', konflikt: 'Jemand hat gleichzeitig gespeichert.', schluessel: 'Zugangscode ungültig.' })[e && e.art] || 'Unbekannter Fehler.';
+}
+
+async function laden(still) {
+  if (!KEY) { S.status = 'zugang'; render(); return; }
+  if (!still) { S.status = 'laden'; render(); }
+  try {
+    const j = await api('GET');
+    S.daten = normalisiere(j.data); S.sha = j.sha || null; S.status = 'ok'; S.fehler = ''; S.letzteSync = Date.now();
+    if (!S.daten.personen.length) S.offen.personen = true;
+  } catch (e) {
+    if (e.art === 'schluessel') {
+      try { localStorage.removeItem('fg-schluessel'); } catch (_) {}
+      KEY = null; S.status = 'zugang'; S.fehler = 'Der Zugangscode stimmt nicht.';
+    } else if (!S.daten) { S.status = 'fehler'; S.fehler = fehlerText(e); }
+    else { S.status = 'ok'; toast(fehlerText(e), true); }
+  }
+  render();
+}
+
+/* Änderung speichern. fn verändert eine Kopie der Daten; bei gleichzeitiger Änderung
+   durch jemand anderen werden die neuesten Daten geholt und fn erneut angewendet. */
+async function aendern(nachricht, fn, okText) {
+  if (S.beschaeftigt) return false;
+  S.beschaeftigt = true; zeigeSync();
+  let basis = S.daten, sha = S.sha;
+  try {
+    for (let v = 0; v < 5; v++) {
+      const neu = normalisiere(JSON.parse(JSON.stringify(basis)));
+      fn(neu);
+      try {
+        const j = await api('PUT', { data: neu, sha, nachricht });
+        S.daten = neu; S.sha = j.sha || null; S.letzteSync = Date.now();
+        if (okText) toast(okText);
+        return true;
+      } catch (e) {
+        if (e.art !== 'konflikt') throw e;
+        await pause(400 + 600 * v);
+        const j = await api('GET');
+        basis = normalisiere(j.data); sha = j.sha || null;
+      }
+    }
+    throw { art: 'konflikt' };
+  } catch (e) {
+    toast(fehlerText(e) + ' Nicht gespeichert.', true);
+    return false;
+  } finally {
+    S.beschaeftigt = false;
+    render();
+  }
+}
+
+/* ---------- Darstellung ---------- */
+function syncHtml() {
+  if (S.beschaeftigt) return '<button class="sync laeuft" id="sync" data-a="neu-laden">Speichert …</button>';
+  if (DEMO) return '<button class="sync laeuft" id="sync" data-a="neu-laden">Vorschau</button>';
+  if (S.status === 'fehler') return '<button class="sync fehler" id="sync" data-a="neu-laden">Offline</button>';
+  return '<button class="sync" id="sync" data-a="neu-laden" aria-label="Neu laden">Gespeichert</button>';
+}
+function zeigeSync() { const el = document.getElementById('sync'); if (el) el.outerHTML = syncHtml(); }
+function kopf() { return `<header class="kopf"><h1>Fahrgemeinschaft</h1>${S.status === 'zugang' ? '' : syncHtml()}</header>`; }
+
+function render() {
+  if (S.status === 'zugang') { $app.innerHTML = kopf() + htmlZugang(); return; }
+  if (!S.daten) {
+    $app.innerHTML = kopf() + (S.status === 'fehler'
+      ? `<div class="quitt">${esc(S.fehler)}<div class="mehr"><button class="knopf" data-a="neu-laden">Nochmal versuchen</button></div></div>`
+      : '<p class="klein">Lädt …</p>');
+    return;
+  }
+  const vorher = document.activeElement && $app.contains(document.activeElement) ? document.activeElement.dataset.f : null;
+  const teile = [kopf()];
+  if (!S.daten.personen.length) teile.push(htmlPersonen(true), htmlEinst());
+  else teile.push(htmlFahrt(), htmlKonto(), htmlVerlauf(), htmlPersonen(false), htmlEinst());
+  $app.innerHTML = teile.join('');
+  const fokus = $app.querySelector('[data-fokus]') || (vorher && $app.querySelector(`[data-f="${vorher}"]`));
+  if (fokus) { fokus.focus(); fokus.removeAttribute('data-fokus'); }
+}
+
+function htmlZugang() {
+  return `<section class="schild zugang">
+    <h2>Zugang</h2>
+    <p>Öffne den Einladungslink, den du in der Gruppe bekommen hast. Oder gib den Zugangscode ein.</p>
+    <div class="reihe" style="grid-template-columns:1fr auto">
+      <input data-f="code" value="${esc(S.code)}" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Zugangscode">
+      <button class="speichern" data-a="code-ok">Öffnen</button>
+    </div>
+    ${S.fehler ? `<p>${esc(S.fehler)}</p>` : ''}
+  </section>`;
+}
+
+function entwurf() {
+  const d = S.daten;
+  const fahrer = d.personen.find(p => p.id === S.fahrer && hatAuto(p));
+  const mit = Object.entries(S.mit)
+    .filter(([id, s]) => s && fahrer && id !== fahrer.id && d.personen.some(p => p.id === id))
+    .map(([id, s]) => ({ id, strecken: s }));
+  const km = S.km == null ? d.einstellungen.kmTag : S.km;
+  return { fahrer, mit, km };
+}
+
+function htmlVorschau() {
+  const d = S.daten, { fahrer, mit, km } = entwurf();
+  if (!fahrer) return '<div class="hinweis">Tippe an, wer gefahren ist.</div>';
+  if (!mit.length) return '<div class="hinweis">Tippe an, wer mitgefahren ist.</div>';
+  if (!(km > 0)) return '<div class="hinweis">Bitte die Kilometer eintragen.</div>';
+  const a = anteile({ fahrer: fahrer.id, km, mitfahrer: mit, kostenProKm: satzFuerNeueFahrt(fahrer, d.einstellungen) });
+  const teil = a.pauschaleCent ? `Sprit ${euro(a.energieCent)} + Betrieb ${euro(a.pauschaleCent)}` : `Sprit für ${dez(km, 1)} km`;
+  return `<div>
+      <div class="summe">${euro(a.gesamtCent)}</div>
+      <div class="teil">${teil}</div>
+      <ul>${a.mitfahrer.map(m => `<li>${esc(name(m.id))} zahlt ${euro(m.cent)}</li>`).join('')}</ul>
+    </div>`;
+}
+function zeigeVorschau() {
+  const el = document.getElementById('vorschau-inhalt');
+  if (el) el.innerHTML = htmlVorschau();
+  const b = document.getElementById('fahrt-speichern');
+  if (b) { const { fahrer, mit, km } = entwurf(); b.disabled = !(fahrer && mit.length && km > 0); }
+}
+
+function htmlFahrt() {
+  const d = S.daten, e = d.einstellungen;
+  const fahrerListe = d.personen.filter(hatAuto);
+  if (S.fahrer && !fahrerListe.some(p => p.id === S.fahrer)) S.fahrer = null;
+  const km = S.km == null ? e.kmTag : S.km;
+  const { fahrer, mit } = entwurf();
+  const fahrerChips = fahrerListe.length
+    ? `<div class="chips" role="group" aria-label="Wer ist gefahren">${fahrerListe.map(p =>
+        `<button class="chip fahrer${S.fahrer === p.id ? ' an' : ''}" aria-pressed="${S.fahrer === p.id}" data-a="fahrer" data-id="${p.id}">${esc(p.name)}</button>`).join('')}</div>`
+    : '<p class="leer-schild">Noch niemand hat ein Auto eingetragen. Das geht unten bei Personen.</p>';
+  const andere = d.personen.filter(p => p.id !== S.fahrer);
+  const mitChips = `<div class="chips" role="group" aria-label="Wer ist mitgefahren">${andere.map(p => {
+      const st = S.mit[p.id] || 0;
+      const label = st === 2 ? 'hin und zurück' : st === 1 ? 'nur eine Strecke' : 'nicht dabei';
+      return `<button class="chip mit${st ? ' an' : ''}${st === 1 ? ' halb' : ''}" data-a="mit" data-id="${p.id}" aria-label="${esc(p.name)}: ${label}">${esc(p.name)}${st === 1 ? '<span class="zeichen" aria-hidden="true">½</span>' : ''}</button>`;
+    }).join('')}</div>`;
+  return `<section class="schild" aria-label="Neue Fahrt">
+    <h2>Neue Fahrt</h2>
+    <div class="reihe">
+      <label class="feld">Datum<input type="date" data-f="datum" value="${esc(S.datum)}"></label>
+      <label class="feld">km<input data-f="km" inputmode="decimal" value="${esc(dez(km, 1))}"></label>
+    </div>
+    <div class="frage">Wer ist gefahren?</div>
+    ${fahrerChips}
+    <div class="frage">Wer ist mitgefahren?</div>
+    ${andere.length ? mitChips : '<p class="leer-schild">Noch keine weiteren Personen eingetragen.</p>'}
+    ${andere.length ? '<p class="hilfe">Einmal tippen: hin und zurück. Zweimal: nur eine Strecke (½).</p>' : ''}
+    <div class="vorschau">
+      <div id="vorschau-inhalt">${htmlVorschau()}</div>
+      <button class="speichern" id="fahrt-speichern" data-a="fahrt-speichern"${fahrer && mit.length && km > 0 ? '' : ' disabled'}>Fahrt speichern</button>
+    </div>
+  </section>`;
+}
+
+function htmlKonto() {
+  const d = S.daten, s = salden(d), ueb = ausgleich(s);
+  const zeilen = d.personen.map(p => {
+    const c = s[p.id] || 0;
+    return `<li><span>${esc(p.name)}</span><span class="betrag ${c > 0 ? 'plus' : c < 0 ? 'minus' : 'null'}">${c ? mitVorzeichen(c) : '0,00 €'}</span></li>`;
+  }).join('');
+  const zahlungen = ueb.length
+    ? `<ul class="liste">${ueb.map(u => `<li>
+          <span class="wer">${esc(name(u.von))}<span class="pfeil" aria-label="zahlt an">→</span>${esc(name(u.an))}</span>
+          <span class="betrag">${euro(u.cent)}</span>
+          <button class="knopf" data-a="bezahlt" data-von="${u.von}" data-an="${u.an}" data-cent="${u.cent}">bezahlt</button>
+        </li>`).join('')}</ul>`
+    : `<div class="quitt">${d.fahrten.length ? 'Alle sind quitt.' : 'Noch keine Fahrten eingetragen.'}</div>`;
+  return `<section class="block">
+    <h2>Kontostand</h2>
+    <ul class="liste">${zeilen}</ul>
+    <p class="erklaerung">Plus bekommt Geld, minus muss zahlen.</p>
+    <h3>Wer zahlt wem</h3>
+    ${zahlungen}
+  </section>`;
+}
+
+function htmlVerlauf() {
+  const d = S.daten;
+  const alle = [
+    ...d.fahrten.map(f => ({ art: 'f', s: (f.datum || '') + (f.erstellt || ''), x: f })),
+    ...d.zahlungen.map(z => ({ art: 'z', s: (z.datum || '') + (z.erstellt || ''), x: z }))
+  ].sort((a, b) => a.s < b.s ? 1 : a.s > b.s ? -1 : 0);
+  const anzahl = alle.length;
+  const offen = S.offen.verlauf;
+  let inhalt = '';
+  if (offen) {
+    if (!anzahl) inhalt = '<div class="quitt">Hier erscheinen alle Fahrten und Zahlungen.</div>';
+    else {
+      const zeigen = S.offen.alle ? alle : alle.slice(0, 8);
+      inhalt = `<ul class="liste">${zeigen.map(e => {
+        if (e.art === 'f') {
+          const f = e.x, a = anteile(f);
+          const mit = a.mitfahrer.map(m => esc(name(m.id)) + (m.strecken === 1 ? ' (½)' : '')).join(', ');
+          return `<li><div class="eintrag"><div>${datumKurz(f.datum)}: ${esc(name(f.fahrer))} ist gefahren</div>
+            <div class="k">mit ${mit}, ${dez(f.km, 1)} km, ${euro(a.gesamtCent)}</div></div>
+            <button class="x" data-a="loeschen-f" data-id="${esc(f.id)}" aria-label="Fahrt löschen">✕</button></li>`;
+        }
+        const z = e.x;
+        return `<li><div class="eintrag"><div>${datumKurz(z.datum)}: ${esc(name(z.von))} hat ${esc(name(z.an))} bezahlt</div>
+          <div class="k">${euro(z.cent)}</div></div>
+          <button class="x" data-a="loeschen-z" data-id="${esc(z.id)}" aria-label="Zahlung löschen">✕</button></li>`;
+      }).join('')}</ul>
+      ${anzahl > 8 && !S.offen.alle ? `<div class="mehr"><button class="knopf" data-a="alle">Alle ${anzahl} anzeigen</button></div>` : ''}`;
+    }
+  }
+  return `<section class="block">
+    <button class="aufklapp" data-a="auf" data-k="verlauf" aria-expanded="${offen}"><span>Verlauf<span class="zahl">${anzahl}</span></span></button>
+    ${inhalt}
+  </section>`;
+}
+
+function htmlPersonen(erst) {
+  const d = S.daten, offen = erst || S.offen.personen;
+  const kopfzeile = erst
+    ? `<h2>Wer gehört dazu?</h2><p class="erklaerung" style="margin:0 2px 10px">Trag alle ein, die mitfahren. Wer ein Auto hat, gibt es gleich mit an.</p>`
+    : `<button class="aufklapp" data-a="auf" data-k="personen" aria-expanded="${offen}"><span>Personen<span class="zahl">${d.personen.length}</span></span></button>`;
+  if (!offen) return `<section class="block">${kopfzeile}</section>`;
+  const liste = d.personen.length
+    ? `<ul class="liste">${d.personen.map(p => `<li><button class="person" data-a="person" data-id="${p.id}">${esc(p.name)}<span class="klein">${esc(autoText(p.auto))}</span></button></li>`).join('')}</ul>`
+    : '';
+  return `<section class="block">${kopfzeile}${liste}${S.pform ? htmlPform() : `<button class="neu" data-a="person-neu">+ Person</button>`}</section>`;
+}
+
+function htmlPform() {
+  const f = S.pform, d = S.daten;
+  const benutzt = f.id && (d.fahrten.some(x => x.fahrer === f.id || (x.mitfahrer || []).some(m => m.id === f.id)) || d.zahlungen.some(z => z.von === f.id || z.an === f.id));
+  return `<div class="formular">
+    <label>Name<input class="eingabe" data-f="p-name" value="${esc(f.name)}" maxlength="30" autocomplete="off"${f.fokus ? ' data-fokus' : ''}></label>
+    <div><div class="klein" style="margin-bottom:4px">Auto</div>
+      <div class="seg" role="group" aria-label="Auto">${['diesel', 'benzin', 'elektro', 'keins'].map(t =>
+        `<button data-a="p-typ" data-typ="${t}" aria-pressed="${f.typ === t}">${TYP_NAME[t]}</button>`).join('')}</div></div>
+    ${f.typ !== 'keins' ? `<label>Durchschnittsverbrauch<span class="mit-einheit"><input class="eingabe" data-f="p-verbrauch" inputmode="decimal" value="${esc(f.verbrauch)}"><span>${EINHEIT[f.typ]}/100 km</span></span></label>` : ''}
+    <div class="knopfreihe">
+      <button class="knopf voll" data-a="p-speichern">Speichern</button>
+      <button class="knopf" data-a="p-abbrechen">Abbrechen</button>
+      ${f.id && !benutzt ? '<button class="knopf gefahr" data-a="p-loeschen">Löschen</button>' : ''}
+    </div>
+  </div>`;
+}
+
+function htmlEinst() {
+  const e = S.daten.einstellungen, offen = S.offen.einst;
+  const kopfzeile = `<button class="aufklapp" data-a="auf" data-k="einst" aria-expanded="${offen}"><span>Einstellungen</span></button>`;
+  if (!offen) return `<section class="block">${kopfzeile}</section>`;
+  const feld = (f, wert, st) => `<input class="eingabe" data-f="${f}" inputmode="decimal" value="${esc(dez(wert, st))}">`;
+  return `<section class="block">${kopfzeile}
+    <div class="einst">
+      <label class="z"><span>km pro Tag<br><span class="klein">hin und zurück</span></span>${feld('e-km', e.kmTag, 1)}</label>
+      <label class="z"><span>Diesel <span class="klein">€/L</span></span>${feld('e-diesel', e.preise.diesel, 3)}</label>
+      <label class="z"><span>Benzin <span class="klein">€/L</span></span>${feld('e-benzin', e.preise.benzin, 3)}</label>
+      <label class="z"><span>Strom <span class="klein">€/kWh</span></span>${feld('e-strom', e.preise.strom, 3)}</label>
+      <label class="z check"><input type="checkbox" data-f="e-pausch"${e.pauschale.aktiv ? ' checked' : ''}><span>Betriebskosten mitrechnen<br><span class="klein">Wertverlust, Wartung, Reparaturen. Gleicher Satz für alle Autos, wird wie der Sprit aufgeteilt.</span></span></label>
+      <label class="z${e.pauschale.aktiv ? '' : ' aus'}"><span>Betriebskosten <span class="klein">ct/km</span></span>${feld('e-ct', e.pauschale.ctProKm, 1)}</label>
+    </div>
+    <p class="erklaerung">Änderungen gelten für neue Fahrten, eingetragene Fahrten bleiben, wie sie sind.</p>
+    ${DEMO ? '' : '<div class="mehr"><button class="knopf" data-a="teilen">Einladungslink teilen</button></div>'}
+  </section>`;
+}
+
+/* ---------- Aktionen ---------- */
+async function fahrtSpeichern() {
+  const d = S.daten, { fahrer, mit, km } = entwurf();
+  if (!fahrer || !mit.length || !(km > 0)) return;
+  if (d.fahrten.some(f => f.datum === S.datum && f.fahrer === fahrer.id) &&
+      !confirm(`Am ${datumKurz(S.datum)} ist schon eine Fahrt von ${fahrer.name} eingetragen. Trotzdem noch eine speichern?`)) return;
+  const fahrt = {
+    id: neueId(), datum: S.datum, fahrer: fahrer.id, km, mitfahrer: mit,
+    auto: { typ: fahrer.auto.typ, verbrauch: fahrer.auto.verbrauch },
+    kostenProKm: satzFuerNeueFahrt(fahrer, d.einstellungen),
+    erstellt: new Date().toISOString()
+  };
+  const ok = await aendern(`Fahrt ${fahrt.datum}: ${fahrer.name}`, dd => {
+    if (!dd.fahrten.some(f => f.id === fahrt.id)) dd.fahrten.push(fahrt);
+  }, 'Fahrt gespeichert');
+  if (ok) { S.mit = {}; S.fahrer = null; S.km = null; render(); }
+}
+
+async function bezahlt(von, an, cent) {
+  if (!confirm(`${name(von)} hat ${name(an)} ${euro(cent)} bezahlt?`)) return;
+  const z = { id: neueId(), datum: heute(), von, an, cent, erstellt: new Date().toISOString() };
+  await aendern(`Zahlung ${name(von)} an ${name(an)}`, dd => {
+    if (dd.zahlungen.some(x => x.id === z.id)) return;
+    const s = salden(dd);
+    const betrag = Math.min(cent, -(s[von] || 0), s[an] || 0);
+    if (betrag > 0) dd.zahlungen.push(Object.assign({}, z, { cent: betrag }));
+  }, 'Als bezahlt eingetragen');
+}
+
+async function personSpeichern() {
+  const f = S.pform, d = S.daten;
+  const nm = f.name.trim().replace(/\s+/g, ' ');
+  if (!nm) { toast('Bitte einen Namen eintragen.', true); return; }
+  if (d.personen.some(p => p.id !== f.id && p.name.toLowerCase() === nm.toLowerCase())) { toast(`${nm} gibt es schon.`, true); return; }
+  let auto = null;
+  if (f.typ !== 'keins') {
+    const v = liesZahl(f.verbrauch);
+    if (!(v > 0 && v < 100)) { toast('Bitte einen Verbrauch eintragen, z. B. 5,5.', true); return; }
+    auto = { typ: f.typ, verbrauch: v };
+  }
+  const id = f.id || neueId();
+  const ok = await aendern(f.id ? `Person geändert: ${nm}` : `Person neu: ${nm}`, dd => {
+    const p = dd.personen.find(x => x.id === id);
+    if (p) { p.name = nm; p.auto = auto; } else dd.personen.push({ id, name: nm, auto });
+  }, f.id ? 'Gespeichert' : `${nm} ist dabei`);
+  if (ok) { S.pform = null; render(); }
+}
+
+async function personLoeschen() {
+  const f = S.pform;
+  if (!confirm(`${name(f.id)} löschen?`)) return;
+  const ok = await aendern(`Person gelöscht: ${name(f.id)}`, dd => {
+    const benutzt = dd.fahrten.some(x => x.fahrer === f.id || (x.mitfahrer || []).some(m => m.id === f.id)) || dd.zahlungen.some(z => z.von === f.id || z.an === f.id);
+    if (!benutzt) dd.personen = dd.personen.filter(p => p.id !== f.id);
+  }, 'Gelöscht');
+  if (ok) { S.pform = null; delete S.mit[f.id]; if (S.fahrer === f.id) S.fahrer = null; render(); }
+}
+
+const EINST_FELD = {
+  'e-km': [(e, v) => { e.kmTag = v; }, v => v > 0 && v < 2000],
+  'e-diesel': [(e, v) => { e.preise.diesel = v; }, v => v >= 0 && v < 10],
+  'e-benzin': [(e, v) => { e.preise.benzin = v; }, v => v >= 0 && v < 10],
+  'e-strom': [(e, v) => { e.preise.strom = v; }, v => v >= 0 && v < 5],
+  'e-ct': [(e, v) => { e.pauschale.ctProKm = v; }, v => v >= 0 && v < 100]
+};
+
+async function teilen() {
+  const url = location.origin + location.pathname + '#k=' + KEY;
+  try {
+    if (navigator.share) { await navigator.share({ title: 'Fahrgemeinschaft', text: 'Unsere Fahrtkosten:', url }); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(url); toast('Link kopiert'); }
+  catch (e) { prompt('Diesen Link teilen:', url); }
+}
+
+$app.addEventListener('click', async ev => {
+  const b = ev.target.closest('[data-a]');
+  if (!b || b.disabled) return;
+  const a = b.dataset.a, id = b.dataset.id;
+  if (a === 'fahrer') { S.fahrer = S.fahrer === id ? null : id; delete S.mit[id]; render(); }
+  else if (a === 'mit') { const st = S.mit[id] || 0; S.mit[id] = st === 0 ? 2 : st === 2 ? 1 : 0; render(); }
+  else if (a === 'fahrt-speichern') fahrtSpeichern();
+  else if (a === 'bezahlt') bezahlt(b.dataset.von, b.dataset.an, Number(b.dataset.cent));
+  else if (a === 'auf') { const k = b.dataset.k; S.offen[k] = !S.offen[k]; if (k === 'personen' && !S.offen[k]) S.pform = null; render(); }
+  else if (a === 'alle') { S.offen.alle = true; render(); }
+  else if (a === 'loeschen-f') {
+    const f = S.daten.fahrten.find(x => x.id === id);
+    if (f && confirm(`Fahrt vom ${datumKurz(f.datum)} (${name(f.fahrer)}) löschen?`))
+      aendern(`Fahrt gelöscht: ${f.datum} ${name(f.fahrer)}`, dd => { dd.fahrten = dd.fahrten.filter(x => x.id !== id); }, 'Fahrt gelöscht');
+  }
+  else if (a === 'loeschen-z') {
+    const z = S.daten.zahlungen.find(x => x.id === id);
+    if (z && confirm(`Zahlung ${name(z.von)} an ${name(z.an)} (${euro(z.cent)}) löschen?`))
+      aendern('Zahlung gelöscht', dd => { dd.zahlungen = dd.zahlungen.filter(x => x.id !== id); }, 'Zahlung gelöscht');
+  }
+  else if (a === 'person-neu') { S.pform = { id: null, name: '', typ: 'diesel', verbrauch: dez(VERBRAUCH_STD.diesel, 1), fokus: true }; render(); S.pform.fokus = false; }
+  else if (a === 'person') {
+    const p = S.daten.personen.find(x => x.id === id);
+    const typ = hatAuto(p) ? p.auto.typ : 'keins';
+    S.pform = { id, name: p.name, typ, verbrauch: dez(hatAuto(p) ? p.auto.verbrauch : VERBRAUCH_STD.diesel, 1), fokus: false };
+    render();
+  }
+  else if (a === 'p-typ') {
+    const f = S.pform, neu = b.dataset.typ;
+    if (neu !== 'keins' && (f.typ === 'keins' || liesZahl(f.verbrauch) === VERBRAUCH_STD[f.typ] || isNaN(liesZahl(f.verbrauch)))) f.verbrauch = dez(VERBRAUCH_STD[neu], 1);
+    f.typ = neu; render();
+  }
+  else if (a === 'p-speichern') personSpeichern();
+  else if (a === 'p-abbrechen') { S.pform = null; render(); }
+  else if (a === 'p-loeschen') personLoeschen();
+  else if (a === 'neu-laden') { if (!S.beschaeftigt) laden(!!S.daten); }
+  else if (a === 'teilen') teilen();
+  else if (a === 'code-ok') {
+    const k = (S.code || '').trim().replace(/^.*#k=/, '');
+    if (!/^[A-Za-z0-9_-]{8,}$/.test(k)) { S.fehler = 'Der Code ist zu kurz.'; render(); return; }
+    KEY = k; try { localStorage.setItem('fg-schluessel', k); } catch (e) {}
+    S.fehler = ''; laden(false);
+  }
+});
+
+$app.addEventListener('input', ev => {
+  const f = ev.target.dataset.f;
+  if (f === 'datum') S.datum = ev.target.value || heute();
+  else if (f === 'km') { const v = liesZahl(ev.target.value); S.km = isNaN(v) ? 0 : v; zeigeVorschau(); }
+  else if (f === 'p-name') S.pform.name = ev.target.value;
+  else if (f === 'p-verbrauch') S.pform.verbrauch = ev.target.value;
+  else if (f === 'code') S.code = ev.target.value;
+});
+
+$app.addEventListener('change', ev => {
+  const f = ev.target.dataset.f;
+  if (f === 'e-pausch') {
+    const an = ev.target.checked;
+    aendern(an ? 'Betriebskosten an' : 'Betriebskosten aus', dd => { dd.einstellungen.pauschale.aktiv = an; }, an ? 'Betriebskosten werden mitgerechnet' : 'Betriebskosten aus');
+    return;
+  }
+  const regel = EINST_FELD[f];
+  if (!regel) return;
+  const v = liesZahl(ev.target.value);
+  if (isNaN(v) || !regel[1](v)) { toast('Bitte eine gültige Zahl eintragen.', true); render(); return; }
+  aendern('Einstellungen geändert', dd => { regel[0](dd.einstellungen, v); }, 'Gespeichert');
+});
+
+$app.addEventListener('keydown', ev => {
+  if (ev.key !== 'Enter') return;
+  const f = ev.target.dataset.f;
+  if (f === 'p-name' || f === 'p-verbrauch') { ev.preventDefault(); personSpeichern(); }
+  else if (f === 'code') { ev.preventDefault(); $app.querySelector('[data-a="code-ok"]').click(); }
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && S.daten && !S.beschaeftigt && Date.now() - S.letzteSync > 15000) laden(true);
+});
+
+laden(false);
+})();
+</script>
+</body>
+</html>
