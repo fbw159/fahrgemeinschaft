@@ -6,6 +6,8 @@
 <meta name="theme-color" content="#0A4F87">
 <title>Fahrgemeinschaft</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚗</text></svg>">
+<!-- Kein Web-App-Manifest: sonst würde der Home-Bildschirm den Start-Link ohne #k=… verwenden -->
+<link rel="apple-touch-icon" href="icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -303,16 +305,20 @@ function toast(text, fehler) {
   toastTimer = setTimeout(() => { $toast.className = fehler ? 'fehler' : ''; }, fehler ? 4000 : 2200);
 }
 
-/* ---------- Zugang und Speicher ---------- */
+/* ---------- Zugang und Speicher ----------
+   Der Zugangscode bleibt als #k=… in der Adresse: so enthalten Lesezeichen,
+   Home-Bildschirm-Symbole und kopierte Links ihn immer. Zusätzlich merkt ihn
+   sich der Browser, damit auch der kurze Link ohne Code funktioniert. */
+const codeAusAdresse = () => { const m = location.hash.match(/(?:^#|&)k=([A-Za-z0-9_-]+)/); return m ? m[1] : null; };
+function codeInAdresse(k) {
+  const soll = k ? '#k=' + k : '';
+  if (location.hash !== soll) history.replaceState(null, '', location.pathname + location.search + soll);
+}
+function merkeCode(k) { try { localStorage.setItem('fg-schluessel', k); } catch (e) {} }
 function holeSchluessel() {
-  let k = null;
-  const m = location.hash.match(/(?:^#|&)k=([A-Za-z0-9_-]+)/);
-  if (m) {
-    k = m[1];
-    try { localStorage.setItem('fg-schluessel', k); } catch (e) {}
-    history.replaceState(null, '', location.pathname + location.search);
-  }
+  let k = codeAusAdresse();
   if (!k) { try { k = localStorage.getItem('fg-schluessel'); } catch (e) {} }
+  if (k) { merkeCode(k); codeInAdresse(k); }
   return k;
 }
 let KEY = DEMO ? 'demo' : holeSchluessel();
@@ -354,6 +360,7 @@ async function laden(still) {
     if (e.art === 'schluessel') {
       try { localStorage.removeItem('fg-schluessel'); } catch (_) {}
       KEY = null; S.status = 'zugang'; S.fehler = 'Der Zugangscode stimmt nicht.';
+      codeInAdresse(null);
     } else if (!S.daten) { S.status = 'fehler'; S.fehler = fehlerText(e); }
     else { S.status = 'ok'; toast(fehlerText(e), true); }
   }
@@ -422,7 +429,7 @@ function render() {
 function htmlZugang() {
   return `<section class="schild zugang">
     <h2>Zugang</h2>
-    <p>Öffne den Einladungslink, den du in der Gruppe bekommen hast. Oder gib den Zugangscode ein.</p>
+    <p>Öffne den Einladungslink, den du in der Gruppe bekommen hast, oder füg ihn hier ein.</p>
     <div class="reihe" style="grid-template-columns:1fr auto">
       <input data-f="code" value="${esc(S.code)}" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Zugangscode">
       <button class="speichern" data-a="code-ok">Öffnen</button>
@@ -719,9 +726,17 @@ $app.addEventListener('click', async ev => {
   else if (a === 'code-ok') {
     const k = (S.code || '').trim().replace(/^.*#k=/, '');
     if (!/^[A-Za-z0-9_-]{8,}$/.test(k)) { S.fehler = 'Der Code ist zu kurz.'; render(); return; }
-    KEY = k; try { localStorage.setItem('fg-schluessel', k); } catch (e) {}
+    KEY = k; merkeCode(k); codeInAdresse(k);
     S.fehler = ''; laden(false);
   }
+});
+
+/* Link mit anderem Code im selben Tab geöffnet -> diesen nehmen; Code aus der Adresse gelöscht -> wieder einsetzen */
+window.addEventListener('hashchange', () => {
+  if (DEMO) return;
+  const k = codeAusAdresse();
+  if (k && k !== KEY) { KEY = k; merkeCode(k); codeInAdresse(k); S.fehler = ''; laden(false); }
+  else if (KEY) codeInAdresse(KEY);
 });
 
 $app.addEventListener('input', ev => {

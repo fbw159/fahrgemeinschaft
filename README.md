@@ -5,6 +5,7 @@ Fahrtkosten einer Fahrgemeinschaft eintragen, aufteilen und ausgleichen – für
 - Seite: `index.html` (GitHub Pages)
 - Daten: liegen nicht hier, sondern als `data.json` in einem privaten Repo. Jede Änderung im Dashboard ist dort ein Commit.
 - Speichern läuft über einen Cloudflare Worker (`relay/worker.js`), der den Schreibzugriff hält. Zugang nur mit dem Einladungslink (`#k=…`).
+- Der Code bleibt als `#k=…` in der Adresse, damit Lesezeichen, Home-Bildschirm-Symbole und kopierte Links ihn enthalten. Zusätzlich merkt ihn sich der Browser, dann reicht auch der kurze Link. Absichtlich kein Web-App-Manifest: sonst würde der Home-Bildschirm einen festen Start-Link ohne Code nehmen. Symbol: `icon.png` (apple-touch-icon).
 
 ## Rechenweg
 - Kosten pro km = Verbrauch des Fahrer-Autos × Preis (Diesel/Benzin €/L, Strom €/kWh), optional plus Betriebskosten-Pauschale (gleicher ct/km-Satz für alle Autos).
